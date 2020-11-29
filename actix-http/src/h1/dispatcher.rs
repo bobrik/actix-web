@@ -9,7 +9,7 @@ use actix_rt::time::{delay_until, Delay, Instant};
 use actix_service::Service;
 use bitflags::bitflags;
 use bytes::{Buf, BytesMut};
-use log::{error, trace};
+use log::{error, info, trace};
 use pin_project::pin_project;
 
 use crate::cloneable::CloneableService;
@@ -674,19 +674,21 @@ where
                                 return Ok(());
                             }
                         } else {
-                            // timeout on first request (slow request) return 408
-                            if !this.flags.contains(Flags::STARTED) {
-                                trace!("Slow request timeout");
-                                let _ = self.as_mut().send_response(
-                                    Response::RequestTimeout().finish().drop_body(),
-                                    ResponseBody::Other(Body::Empty),
-                                );
-                                this = self.as_mut().project();
-                            } else {
-                                trace!("Keep-alive connection timeout");
-                            }
-                            this.flags.insert(Flags::STARTED | Flags::SHUTDOWN);
-                            this.state.set(State::None);
+                            // // timeout on first request (slow request) return 408
+                            // if !this.flags.contains(Flags::STARTED) {
+                            //     trace!("Slow request timeout!!11");
+                            //     let _ = self.as_mut().send_response(
+                            //         Response::RequestTimeout().finish().drop_body(),
+                            //         ResponseBody::Other(Body::Empty),
+                            //     );
+                            //     this = self.as_mut().project();
+                            // } else {
+                            //     trace!("Keep-alive connection timeout");
+                            // }
+                            // no shutdown timeout, drop socket
+                            info!("bonk");
+                            this.flags.insert(Flags::WRITE_DISCONNECT);
+                            return Ok(());
                         }
                     } else if let Some(deadline) =
                         this.codec.config().keep_alive_expire()
